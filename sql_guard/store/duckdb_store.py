@@ -98,6 +98,10 @@ class DuckDBStore:
             """,
             params,
         ).fetchone()
+        if row is None:
+            return {"total": 0, "avg_trust": None, "passed": 0, "failed": 0,
+                    "pass_rate": None, "fail_rate": None, "avg_latency": None,
+                    "total_tokens": 0, "first_seen": None, "last_seen": None}
         total = row[0] or 0
         return {
             "total": total,

@@ -243,15 +243,20 @@ def _load_store():
     config_path = os.environ.get("SQL_GUARD_CONFIG")
     cfg = load_config(Path(config_path) if config_path else None)
     store_uri = os.environ.get("SQL_GUARD_STORE", cfg.event_store)
-    store = DuckDBStore(store_uri, read_only=False)
 
-    # Auto-seed demo data when the store is empty (e.g. fresh Streamlit Cloud deploy)
-    stats = store.get_summary_stats("30d")
-    if stats["total"] == 0:
-        from sql_guard.demo import seed_demo_data
-        seed_demo_data(store)
+    # Seed with a write connection then close it — avoids sharing a write
+    # connection across threads (DuckDB write connections are not thread-safe).
+    write = DuckDBStore(store_uri, read_only=False)
+    try:
+        stats = write.get_summary_stats("30d")
+        if stats["total"] == 0:
+            from sql_guard.demo import seed_demo_data
+            seed_demo_data(write)
+    finally:
+        write.close()
 
-    return store
+    # Return a read-only connection — multiple threads can share this safely.
+    return DuckDBStore(store_uri, read_only=True)
 
 
 # ── Altair theme ──────────────────────────────────────────────────────────────
@@ -858,8 +863,8 @@ def render_backends(config_path) -> None:
                     st.error(f"Error: {r.get('detail', r)}")
             except Exception as e:
                 st.error(
-                    f"Could not reach Agent Trust server at {server_url}. "
-                    f"Is it running? (`Agent Trust serve`)\n\n{e}"
+                    f"Could not reach the server at {server_url}. "
+                    f"Is it running? (`sql-guard serve`)\n\n{e}"
                 )
 
 
