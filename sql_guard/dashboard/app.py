@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="sql-guard · Trust Monitor",
+    page_title="Agent Trust · Trust Monitor",
     layout="wide",
     page_icon="🛡️",
     initial_sidebar_state="expanded",
@@ -755,7 +755,7 @@ def render_backends(config_path) -> None:
 
     st.markdown("### Connected Backends")
     st.markdown(
-        "A backend is any text-to-SQL tool sql-guard monitors. "
+        "A backend is any text-to-SQL tool Agent Trust monitors. "
         "Point your app at the proxy URL or POST events directly to `/track`."
     )
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -801,7 +801,7 @@ def render_backends(config_path) -> None:
             name = st.text_input("Name", placeholder="my-vanna",
                                  help="Unique identifier for this backend")
             url = st.text_input("Endpoint URL", placeholder="https://your-tool.com/ask",
-                                help="Where sql-guard forwards proxy requests")
+                                help="Where Agent Trust forwards proxy requests")
             method = st.selectbox("HTTP Method", ["POST", "GET"])
             auth = st.text_input("Auth header", placeholder="Bearer sk-...", type="password",
                                  help="Sent as Authorization header. Leave blank if not needed.")
@@ -858,8 +858,8 @@ def render_backends(config_path) -> None:
                     st.error(f"Error: {r.get('detail', r)}")
             except Exception as e:
                 st.error(
-                    f"Could not reach sql-guard server at {server_url}. "
-                    f"Is it running? (`sql-guard serve`)\n\n{e}"
+                    f"Could not reach Agent Trust server at {server_url}. "
+                    f"Is it running? (`Agent Trust serve`)\n\n{e}"
                 )
 
 
@@ -884,7 +884,7 @@ def render_about() -> None:
     st.markdown("""
 <div style="margin-bottom:28px;">
   <h1 style="font-size:26px;font-weight:800;letter-spacing:-0.025em;color:#E6EDF3;
-             line-height:1.15;margin:0 0 6px;">About sql-guard</h1>
+             line-height:1.15;margin:0 0 6px;">About Agent Trust</h1>
   <p style="font-size:14px;color:#8B949E;margin:0;max-width:640px;line-height:1.6;">
     The open-source trust and observability layer for text-to-SQL and conversational BI agents.
     Every question your agent answers gets a trust score before it reaches a stakeholder.
@@ -901,7 +901,7 @@ plausible, and nobody notices the agent used the wrong column, made up a join, o
 redefined a KPI.
 </p>
 <p style="color:#8B949E;font-size:13px;line-height:1.7;margin:0;">
-sql-guard wraps any text-to-SQL agent and verifies every answer in real time before it reaches
+Agent Trust wraps any text-to-SQL agent and verifies every answer in real time before it reaches
 a stakeholder. Every query gets a <strong style="color:#E6EDF3;">trust score</strong> (0–1),
 a list of <strong style="color:#E6EDF3;">flagged issues</strong>, and an entry in an
 <strong style="color:#E6EDF3;">event store</strong> that powers this dashboard.
@@ -992,7 +992,7 @@ Disabled checks redistribute their weight so the maximum is always 1.0.
 <div style="background:#161B22;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px 18px;height:100%;">
   <div style="font-size:12px;font-weight:700;color:#00C9B1;margin-bottom:8px;">A — Proxy</div>
   <div style="font-size:12px;color:#8B949E;line-height:1.6;margin-bottom:10px;">
-    Point your app at the sql-guard proxy URL. Zero code changes needed.
+    Point your app at the Agent Trust proxy URL. Zero code changes needed.
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1063,7 +1063,7 @@ def main():
   <span style="font-size:16px;font-weight:800;letter-spacing:-0.02em;
        background:linear-gradient(135deg,#00C9B1,#00AAFF);
        -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-       background-clip:text;">sql-guard</span>
+       background-clip:text;">Agent Trust</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1141,7 +1141,7 @@ def main():
     <h1 style="font-size:26px;font-weight:800;letter-spacing:-0.025em;color:#E6EDF3;
                line-height:1.15;margin:0 0 4px;">Trust Monitor</h1>
     <p style="font-size:12px;color:#484F58;margin:0;font-weight:500;">
-      sql-guard · text-to-SQL reliability · window: {since}
+      Agent Trust · text-to-SQL reliability · window: {since}
     </p>
   </div>
   <div style="display:flex;align-items:center;gap:7px;
