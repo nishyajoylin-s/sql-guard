@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -7,9 +9,11 @@ import yaml
 from pydantic import BaseModel, Field
 
 
-class OllamaConfig(BaseModel):
-    model: str = "llama3.2"
-    host: str = "http://localhost:11434"
+class LLMConfig(BaseModel):
+    provider: str = "auto"              # openai | ollama | auto
+    model: str = "gpt-4o-mini"
+    api_key: str | None = None          # falls back to OPENAI_API_KEY env var
+    host: str = "http://localhost:11434"  # ollama only
     timeout: int = 60
 
 
@@ -43,9 +47,36 @@ class BackendConfig(BaseModel):
 class Config(BaseModel):
     event_store: str = "duckdb:///sql_guard.db"
     server_port: int = 8080
-    ollama: OllamaConfig = Field(default_factory=OllamaConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
     checks: ChecksConfig = Field(default_factory=ChecksConfig)
     backends: list[BackendConfig] = Field(default_factory=list)
+
+    # Keep old field name as alias so existing configs don't break
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if isinstance(obj, dict) and "ollama" in obj and "llm" not in obj:
+            ollama = obj.pop("ollama")
+            obj["llm"] = {"provider": "ollama", "model": ollama.get("model", "llama3.2"), "host": ollama.get("host", "http://localhost:11434")}
+        return super().model_validate(obj, *args, **kwargs)
+
+
+def _expand_env_vars(value: str) -> str:
+    """Replace ${VAR_NAME} with the value of os.environ['VAR_NAME']."""
+    return re.sub(
+        r"\$\{([^}]+)\}",
+        lambda m: os.environ.get(m.group(1), m.group(0)),
+        value,
+    )
+
+
+def _expand_dict(data: Any) -> Any:
+    if isinstance(data, str):
+        return _expand_env_vars(data)
+    if isinstance(data, dict):
+        return {k: _expand_dict(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [_expand_dict(v) for v in data]
+    return data
 
 
 def load_config(path: Path | None = None) -> Config:
@@ -57,6 +88,7 @@ def load_config(path: Path | None = None) -> Config:
         if p and p.exists():
             with open(p) as f:
                 data = yaml.safe_load(f) or {}
+            data = _expand_dict(data)
             return Config.model_validate(data)
     return Config()
 

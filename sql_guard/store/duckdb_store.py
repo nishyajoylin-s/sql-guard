@@ -208,21 +208,29 @@ class DuckDBStore:
         where, params = self._where(since, backend)
         rows = self._conn.execute(
             f"""
-            SELECT
-                CASE
-                    WHEN trust_score < 0.2 THEN '0.0–0.2'
-                    WHEN trust_score < 0.4 THEN '0.2–0.4'
-                    WHEN trust_score < 0.6 THEN '0.4–0.6'
-                    WHEN trust_score < 0.8 THEN '0.6–0.8'
-                    ELSE                        '0.8–1.0'
-                END AS bucket,
-                COUNT(*) AS n
-            FROM events {where}
-            GROUP BY bucket ORDER BY bucket
+            WITH buckets(bucket) AS (
+                VALUES ('0.0–0.2'), ('0.2–0.4'), ('0.4–0.6'), ('0.6–0.8'), ('0.8–1.0')
+            ),
+            counts AS (
+                SELECT
+                    CASE
+                        WHEN trust_score < 0.2 THEN '0.0–0.2'
+                        WHEN trust_score < 0.4 THEN '0.2–0.4'
+                        WHEN trust_score < 0.6 THEN '0.4–0.6'
+                        WHEN trust_score < 0.8 THEN '0.6–0.8'
+                        ELSE                        '0.8–1.0'
+                    END AS bucket,
+                    COUNT(*) AS cnt
+                FROM events {where}
+                GROUP BY bucket
+            )
+            SELECT b.bucket, COALESCE(c.cnt, 0) AS count
+            FROM buckets b LEFT JOIN counts c USING(bucket)
+            ORDER BY b.bucket
             """,
             params,
         ).fetchall()
-        return [{"bucket": r[0], "n": r[1]} for r in rows]
+        return [{"bucket": r[0], "count": r[1]} for r in rows]
 
     def get_latency_percentiles(
         self, since: str = "7d", backend: str | None = None
@@ -250,6 +258,7 @@ class DuckDBStore:
             f"""
             SELECT id, timestamp, question, trust_score, flags, backend_name
             FROM events {where}
+            AND trust_score < {threshold}
             ORDER BY trust_score ASC
             LIMIT {n}
             """,

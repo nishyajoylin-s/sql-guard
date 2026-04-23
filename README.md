@@ -60,24 +60,34 @@ Every call to `guard.ask(...)` runs through five independent checks. Each return
 | **Result plausibility** | Numbers outside a believable range for that metric |
 
 ```
-  Your text-to-SQL agent
-         │
-         │ question
-         ▼
-    ┌──────────────────────────────────┐
-    │            sql-guard             │
-    │   5 checks → trust score + flags │
-    └──────────────┬───────────────────┘
-                   │
-                   ▼
-           ┌──────────────┐
-           │  event store │  ◄── DuckDB (local) or Postgres
-           └──────┬───────┘
-                  │
-                  ▼
-           ┌──────────────┐
-           │  dashboard   │  ◄── localhost:8501
-           └──────────────┘
+  ┌─────────────────────────┐
+  │   Your text-to-SQL      │
+  │        agent            │
+  └────────────┬────────────┘
+               │  question + SQL + result
+               ▼
+  ┌─────────────────────────┐
+  │        sql-guard        │
+  │                         │
+  │  schema grounding       │
+  │  self-consistency       │
+  │  reverse translation    │
+  │  semantic cross-check   │
+  │  result plausibility    │
+  │                         │
+  │  → trust score (0–1)    │
+  │  → flags + explanation  │
+  └────────────┬────────────┘
+               │
+               ▼
+  ┌─────────────────────────┐
+  │       event store       │  DuckDB (local) · Postgres (hosted)
+  └────────────┬────────────┘
+               │
+               ▼
+  ┌─────────────────────────┐
+  │       dashboard         │  localhost:8501
+  └─────────────────────────┘
 ```
 
 ---
@@ -238,21 +248,58 @@ Wrap calls directly with `guard.ask(...)` as shown above.
 
 ---
 
-## Dashboard panels
+## Dashboard
 
-| Panel | What it shows |
+Start the dashboard:
+
+```bash
+uv run streamlit run sql_guard/dashboard/app.py
+# → http://localhost:8501
+```
+
+### Overview tab
+
+**Health banner** — the first thing you see. HEALTHY / DEGRADED / CRITICAL derived from pass rate and average trust score. Tells you agent status without reading any numbers.
+
+**KPI strip (10 metrics across two rows):**
+
+| Metric | What it means |
 |---|---|
-| **Trust Monitor** | Pass rate, avg trust, latency P50/P95, total tokens, uptime |
-| **Query Volume** | Stacked bar — passed vs. failed queries over time |
-| **Trust Score Trend** | Rolling average trust score — should stay flat and high |
-| **Latency** | P50 and P95 over time — widening gap = occasional slow outliers |
-| **Token Usage** | Total tokens per period — spikes = complex questions |
-| **Flag Frequency** | Which checks fire most — identifies systematic agent weaknesses |
-| **Trust Distribution** | Histogram of trust scores — ideal: most in 0.8–1.0 band |
-| **Low Trust Questions** | Worst-performing questions — click any row to drill through |
-| **Event Detail** | Full SQL, result, per-check scores, and flags for a single event |
+| Total Queries | Questions answered in the selected window |
+| Pass Rate | % of answers with trust score ≥ threshold |
+| Avg Trust | Mean trust score across all checks (0 = untrustworthy, 1 = fully trusted) |
+| Latency P50 | Median response time |
+| Latency P95 | 95th-percentile response time — worst-case |
+| Total Tokens | Token count reported by backends (for cost estimation) |
+| Failed Queries | Queries where trust score < threshold |
+| Uptime | % of time buckets that had at least one query |
+| Active Periods | Time buckets with at least one query |
+| Busy Periods | Buckets with above-average query volume |
 
-Sidebar controls: time window (1h / 24h / 7d / 30d), backend filter, pass threshold, auto-refresh.
+**Charts (6 panels):**
+
+| Chart | How to read it |
+|---|---|
+| Query Volume | Green = passed (≥ threshold), red = failed. Rising red = agent degrading. |
+| Trust Score Trend | Should stay flat and high. Dip = recent answers less reliable. Y-axis is always 0–1. |
+| Latency | Teal = P50, purple = P95. Widening gap = occasional slow outliers. |
+| Flag Frequency | Which checks fail most. `sql_inconsistent` = agent disagrees with itself. `unknown_table` = hallucinated table. |
+| Trust Distribution | Histogram across five 0.2-wide bands, red→green. Ideal: most answers in 0.8–1.0. |
+| Token Usage | Total tokens per period. Spikes = unusually complex questions. |
+
+**Low Trust Questions** — sortable table of worst-scoring events. Click any row to open drill-through.
+
+**Event Detail** — full question, SQL, result, per-check bar chart (green ≥ 0.7, red < 0.7), and flag pills.
+
+**Sidebar controls:** time window (1h / 24h / 7d / 30d), backend filter, pass threshold (0.50–0.95), offenders limit, auto-refresh (30s).
+
+### Backends tab
+
+Add, inspect, and test backends. Each backend has a proxy URL (`/proxy/{name}`) and a test endpoint to verify field mapping.
+
+### About tab
+
+Reference card for the trust scoring system, check descriptions, flag definitions, and integration options.
 
 ---
 
