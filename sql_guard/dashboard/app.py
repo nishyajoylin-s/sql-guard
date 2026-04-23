@@ -236,13 +236,24 @@ hr, [data-testid="stDivider"] { border-color: rgba(255,255,255,0.07) !important;
 
 # ── Store ─────────────────────────────────────────────────────────────────────
 
+@st.cache_resource
 def _load_store():
     from sql_guard.config import load_config
     from sql_guard.store.duckdb_store import DuckDBStore
     config_path = os.environ.get("SQL_GUARD_CONFIG")
     cfg = load_config(Path(config_path) if config_path else None)
     store_uri = os.environ.get("SQL_GUARD_STORE", cfg.event_store)
-    return DuckDBStore(store_uri, read_only=False)
+    store = DuckDBStore(store_uri, read_only=False)
+
+    # Auto-seed demo data when the store is empty (e.g. fresh Streamlit Cloud deploy)
+    stats = store.get_summary_stats("30d")
+    if stats["total"] == 0:
+        from sql_guard.demo import seed_demo_data
+        with st.spinner("Seeding demo data…"):
+            n = seed_demo_data(store)
+        st.toast(f"Demo data ready — {n:,} events seeded.", icon="✅")
+
+    return store
 
 
 # ── Altair theme ──────────────────────────────────────────────────────────────
