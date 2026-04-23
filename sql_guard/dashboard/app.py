@@ -406,7 +406,7 @@ def render_volume(store, since: str, threshold: float, backend) -> None:
         y=alt.Y("count:Q", title=None, stack="zero"),
         color=alt.Color("status:N",
             scale=alt.Scale(domain=["passed", "failed"], range=["#3FB950", "#F85149"]),
-            legend=alt.Legend(orient="top-right", title=None),
+            legend=alt.Legend(orient="bottom", direction="horizontal", title=None),
         ),
         order=alt.Order("status:N", sort="descending"),
         tooltip=[
@@ -464,7 +464,7 @@ def render_latency(store, since: str, backend) -> None:
         y=alt.Y("ms:Q", title="ms"),
         color=alt.Color("pct:N",
             scale=alt.Scale(domain=["p50", "p95"], range=["#00C9B1", "#7C5CDB"]),
-            legend=alt.Legend(orient="top-right", title=None),
+            legend=alt.Legend(orient="bottom", direction="horizontal", title=None),
         ),
         tooltip=[
             alt.Tooltip("bucket:T", title="Time", format="%b %d %H:%M"),
