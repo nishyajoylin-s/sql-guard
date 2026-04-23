@@ -406,7 +406,7 @@ def render_volume(store, since: str, threshold: float, backend) -> None:
         y=alt.Y("count:Q", title=None, stack="zero"),
         color=alt.Color("status:N",
             scale=alt.Scale(domain=["passed", "failed"], range=["#3FB950", "#F85149"]),
-            legend=alt.Legend(orient="bottom", direction="horizontal", title=None),
+            legend=None,
         ),
         order=alt.Order("status:N", sort="descending"),
         tooltip=[
@@ -416,7 +416,15 @@ def render_volume(store, since: str, threshold: float, backend) -> None:
         ],
     )
     st.altair_chart(_chart(c), use_container_width=True)
-    st.caption(f"Green ≥ {threshold:.0%} threshold · Red < {threshold:.0%}")
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:14px;margin-top:4px;">'
+        f'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8B949E;">'
+        f'<span style="width:9px;height:9px;border-radius:2px;background:#3FB950;flex-shrink:0;"></span>Passed ≥ {threshold:.0%}</span>'
+        f'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8B949E;">'
+        f'<span style="width:9px;height:9px;border-radius:2px;background:#F85149;flex-shrink:0;"></span>Failed</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── Trust trend ───────────────────────────────────────────────────────────────
@@ -464,7 +472,7 @@ def render_latency(store, since: str, backend) -> None:
         y=alt.Y("ms:Q", title="ms"),
         color=alt.Color("pct:N",
             scale=alt.Scale(domain=["p50", "p95"], range=["#00C9B1", "#7C5CDB"]),
-            legend=alt.Legend(orient="bottom", direction="horizontal", title=None),
+            legend=None,
         ),
         tooltip=[
             alt.Tooltip("bucket:T", title="Time", format="%b %d %H:%M"),
@@ -473,7 +481,16 @@ def render_latency(store, since: str, backend) -> None:
         ],
     )
     st.altair_chart(_chart(c), use_container_width=True)
-    st.caption("Widening gap between P50 and P95 = occasional slow outliers")
+    st.markdown(
+        '<div style="display:flex;align-items:center;gap:14px;margin-top:4px;">'
+        '<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8B949E;">'
+        '<span style="width:22px;height:2px;background:#00C9B1;border-radius:2px;flex-shrink:0;"></span>P50 typical</span>'
+        '<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8B949E;">'
+        '<span style="width:22px;height:2px;background:#7C5CDB;border-radius:2px;flex-shrink:0;"></span>P95 worst-case</span>'
+        '<span style="font-size:11px;color:#484F58;">widening gap = slow outliers</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── Flag frequency ────────────────────────────────────────────────────────────
