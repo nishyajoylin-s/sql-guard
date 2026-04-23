@@ -401,11 +401,9 @@ def render_volume(store, since: str, threshold: float, backend) -> None:
     df["bucket"] = pd.to_datetime(df["bucket"])
     df_long = df.melt("bucket", var_name="status", value_name="count")
     df_long["label"] = df_long["status"].str.title()
-    c = alt.Chart(df_long).mark_bar(
-        opacity=0.9, cornerRadiusTopLeft=2, cornerRadiusTopRight=2,
-    ).encode(
+    c = alt.Chart(df_long).mark_bar(opacity=0.9).encode(
         x=alt.X("bucket:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=-30)),
-        y=alt.Y("count:Q", title=None, stack=True),
+        y=alt.Y("count:Q", title=None, stack="zero"),
         color=alt.Color("status:N",
             scale=alt.Scale(domain=["passed", "failed"], range=["#3FB950", "#F85149"]),
             legend=alt.Legend(orient="top-right", title=None),
