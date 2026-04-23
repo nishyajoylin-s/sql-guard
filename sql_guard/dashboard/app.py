@@ -249,9 +249,7 @@ def _load_store():
     stats = store.get_summary_stats("30d")
     if stats["total"] == 0:
         from sql_guard.demo import seed_demo_data
-        with st.spinner("Seeding demo data…"):
-            n = seed_demo_data(store)
-        st.toast(f"Demo data ready — {n:,} events seeded.", icon="✅")
+        seed_demo_data(store)
 
     return store
 
