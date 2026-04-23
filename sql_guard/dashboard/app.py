@@ -244,19 +244,12 @@ def _load_store():
     cfg = load_config(Path(config_path) if config_path else None)
     store_uri = os.environ.get("SQL_GUARD_STORE", cfg.event_store)
 
-    # Seed with a write connection then close it — avoids sharing a write
-    # connection across threads (DuckDB write connections are not thread-safe).
-    write = DuckDBStore(store_uri, read_only=False)
-    try:
-        stats = write.get_summary_stats("30d")
-        if stats["total"] == 0:
-            from sql_guard.demo import seed_demo_data
-            seed_demo_data(write)
-    finally:
-        write.close()
-
-    # Return a read-only connection — multiple threads can share this safely.
-    return DuckDBStore(store_uri, read_only=True)
+    store = DuckDBStore(store_uri, read_only=False)
+    stats = store.get_summary_stats("30d")
+    if stats["total"] == 0:
+        from sql_guard.demo import seed_demo_data
+        seed_demo_data(store)
+    return store
 
 
 # ── Altair theme ──────────────────────────────────────────────────────────────
